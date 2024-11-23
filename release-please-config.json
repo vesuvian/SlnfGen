@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+    "release-type": "simple",
+    "include-v-in-tag": false,
+    "changelog-type": "github",
+    "group-pull-request-title-pattern": "chore(rp): release ${branch}",
+    "packages": {
+        "src/SolutionFilterGenerator.CLI": {
+            "package-name": "cli"
+        }
+    }
+}

@@ -1,0 +1,65 @@
+name: Nuget package 
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      git_sha:
+        required: true
+        type: string
+      lib_path:
+        required: true
+        type: string
+
+concurrency:
+  group: nuget-package-${{ github.head_ref != null && github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nuget-package:
+    runs-on: ubuntu-latest
+    name: Build nuget package
+
+    steps:
+    # Clone ---------------------------------------------------------------------------------
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.git_sha }}
+
+    # Setup ---------------------------------------------------------------------------------
+    - name: Setup .NET
+      if: steps.changed-files.outputs.any_changed == 'true'
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    # Build ---------------------------------------------------------------------------------
+    - name: Restore
+      shell: pwsh
+      run: |
+        dotnet restore ./src/SolutionFilterGenerator.sln `
+        --ignore-failed-sources `
+        --no-cache
+  
+    - name: Build
+      run: |
+        dotnet build ${{ inputs.lib_path }}/*.csproj \
+        --maxcpucount \
+        --configuration Release \
+        --no-restore \
+        -p:Version=${{ inputs.version }}
+    
+    # Package -------------------------------------------------------------------------------
+    - name: Package
+      run: |
+        dotnet pack ${{ inputs.lib_path }}/*.csproj \
+        --configuration=Release \
+        --nologo \
+        --include-source \
+        -p:Version=${{ inputs.version }}
+
+    # Upload -------------------------------------------------------------------------------
+

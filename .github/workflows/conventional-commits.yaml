@@ -1,0 +1,30 @@
+name: Conventional Commits
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+  merge_group:
+jobs:
+  conventional-commits:
+    # No need to check PRs managed by release-please
+    if: github.event_name == 'pull_request_target' && !contains(github.event.pull_request.head.ref, 'release-please--branches--')
+    runs-on: ubuntu-latest
+    steps:
+    - if: github.event_name == 'pull_request_target'
+      run: |
+        cat <<'EOF' > .__commit_message
+        ${{ github.event.pull_request.title }}
+        EOF
+    - if: github.event_name == 'merge_group'
+      run: |
+        cat <<'EOF' > .__commit_message
+        ${{ github.event.merge_group.head_commit.message }}
+        EOF
+    - shell: python
+      run: |
+        import re
+        pat = re.compile(r'^\s*(?:feat|fix|chore|docs|build|test|perf|refactor)!?(?:\(\w+\))?:')
+        s = open('.__commit_message').read()
+        if not pat.match(s):
+          print('The pull request title does not start with a conventional commit type.')
+          print(f'Commit message: {s}')
+          exit(1)

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SolutionFilterGenerator.CLI": {
+      "commandName": "Project",
+      "commandLineArgs": "-s \"C:\\Workspace\\vitr-na-ng-2\\src\\VITR-NA.Shims.sln\" -f _Shims"
+    }
+  }
+}

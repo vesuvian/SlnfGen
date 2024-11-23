@@ -1,0 +1,68 @@
+name: Dotnet Test
+
+on:
+  pull_request_target:
+  merge_group:
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: dotnet-test-${{ github.head_ref != null && github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dotnet-test:
+    runs-on: [ ubuntu-latest ]
+    name: Dotnet Test
+    # No need to check PRs managed by release-please
+    if: github.event_name == 'merge_group' && !startsWith(github.event.merge_group.head_commit.message, 'chore(rp):')
+
+    steps:
+    # Clone ---------------------------------------------------------------------------------
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha != null && github.event.pull_request.head.sha || github.sha }}
+        token: ${{ secrets.ACTION_PAT }}
+    
+    # Check Changed Files ------------------------------------------------------------------
+    - name: Check Changed Files
+      uses: tj-actions/changed-files@v45
+      id: changed-files
+      with:
+        files: |
+          src/**
+
+    # Setup ---------------------------------------------------------------------------------
+    - name: Setup .NET
+      if: steps.changed-files.outputs.any_changed == 'true'
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore
+      if: steps.changed-files.outputs.any_changed == 'true'
+      shell: pwsh
+      run: |
+        dotnet restore ./src/SolutionFilterGenerator.sln `
+        --ignore-failed-sources `
+        --no-cache
+    
+    - name: Build
+      if: steps.changed-files.outputs.any_changed == 'true'
+      shell: pwsh
+      run: |
+           dotnet build ./src/SolutionFilterGenerator.sln `
+           --maxcpucount `
+           --configuration Release `
+           --no-restore
+
+    - name: Test with the dotnet CLI
+      if: steps.changed-files.outputs.any_changed == 'true'
+      id: test
+      run: |
+        set +e
+        set +o pipefail
+        dotnet test ./src/SolutionFilterGenerator.sln --configuration Release --collect "XPlat Code Coverage" --no-build --no-restore --nologo --logger GitHubActions --verbosity quiet
+        reportgenerator -sourcedirs:src -reports:**/coverage.cobertura.xml -targetdir:${{ github.workspace }}/sq -reporttypes:SonarQube
+        true

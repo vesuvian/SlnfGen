@@ -1,0 +1,40 @@
+name: Handle Release
+on:
+  release:
+    types: [released]
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.info.outputs.package }}
+      version: ${{ steps.info.outputs.version }}
+      type: ${{ steps.info.outputs.pkgtype }}
+      path: ${{ steps.path.outputs.result }}
+    steps:
+    - name: get package name, version and type
+      id: info
+      run: |
+        IFS=- read -a a <<< '${{ github.event.release.tag_name }}'
+        echo "package=${a[0]}" >> "$GITHUB_OUTPUT"
+        echo "version=${a[1]}" >> "$GITHUB_OUTPUT"
+        echo "pkgtype=$([[ ${a[0]} == 'api' ]] && echo docker || echo nuget)">> "$GITHUB_OUTPUT"
+    - uses: actions/checkout@v4
+      with:
+        sparse-checkout: release-please-config.json
+        sparse-checkout-cone-mode: false
+    - name: get package directory path
+      id: path
+      shell: pwsh
+      run: |
+        $j = Get-Content ./release-please-config.json | ConvertFrom-Json
+        $x = $j.packages.psobject.properties | where { $_.Value.'package-name' -eq '${{ steps.info.outputs.package }}' }
+        "result=$($x.Name)" >> $env:GITHUB_OUTPUT
+  nuget:
+    needs: triage
+    if: ${{ needs.triage.outputs.type == 'nuget' }}
+    uses: ./.github/workflows/nuget-package.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.triage.outputs.version }}
+      git_sha: ${{ github.event.release.target_commitish }}
+      lib_path: ${{ needs.triage.outputs.path }}
