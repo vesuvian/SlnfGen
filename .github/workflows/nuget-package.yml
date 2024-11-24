@@ -62,4 +62,7 @@ jobs:
         -p:Version=${{ inputs.version }}
 
     # Upload -------------------------------------------------------------------------------
-
+    - name: Upload
+      run: |
+        file=${{ inputs.lib_path }}/bin/Release/*.${{ inputs.version }}.nupkg
+        dotnet nuget push $file --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_TOKEN }}
