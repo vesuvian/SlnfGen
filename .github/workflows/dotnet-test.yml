@@ -15,7 +15,7 @@ jobs:
     runs-on: [ ubuntu-latest ]
     name: Dotnet Test
     # No need to check PRs managed by release-please
-    if: github.event_name == 'merge_group' && !startsWith(github.event.merge_group.head_commit.message, 'chore(rp):')
+    if: (!startsWith(github.event.merge_group.head_commit.message, 'chore(rp):'))
 
     steps:
     # Clone ---------------------------------------------------------------------------------
