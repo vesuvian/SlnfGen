@@ -27,7 +27,7 @@ jobs:
     
     # Check Changed Files ------------------------------------------------------------------
     - name: Check Changed Files
-      uses: tj-actions/changed-files@v45
+      uses: tj-actions/changed-files@v46
       id: changed-files
       with:
         files: |
